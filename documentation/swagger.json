@@ -1,0 +1,738 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Service to store a high-integrity event register.",
+        "version": "1.0.0",
+        "title": "Register"
+    },
+    "host": "localhost:8005",
+    "basePath": "/",
+    "schemes": [
+        "http"
+    ],
+    "paths": {
+        "/item/{item_hash}": {
+            "get": {
+                "description": "Retrieve a specific item",
+                "operationId": "getItem",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "item_hash",
+                        "description": "The item's hash",
+                        "required": true,
+                        "type": "string",
+                        "format": "sha256"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/item"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/item/{item_hash}/entries": {
+            "get": {
+                "description": "Get the list of entries that cite the item, in reverse chronological order",
+                "operationId": "getItemEntries",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "item_hash",
+                        "description": "The item's hash",
+                        "required": true,
+                        "type": "string",
+                        "format": "sha256"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entry"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/entry/{entry_number}": {
+            "get": {
+                "description": "Get the specified entry (register update event)",
+                "operationId": "getEntry",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "entry_number",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entry"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/entries": {
+            "get": {
+                "description": "Get list of all entries, in reverse chronological order",
+                "operationId": "getEntries",
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entry"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/entries/republish": {
+            "post": {
+                "description": "Republish given list of entries to a given routing key",
+                "operationId": "republishEntries",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Entries to be republished and routing key to republish to",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "entries": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer"
+                                    },
+                                    "minLength": 1
+                                },
+                                "routing_key": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": ["entries", "routing_key"]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "republished_entries": {
+                                    "description": "Successfully republished entries",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "entries_not_found": {
+                                    "description": "Entries not found to republish (entry number greater than max entry)",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "integer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/record": {
+            "post": {
+                "description": "Add a new event record to the register. See Validation API for possible errors.",
+                "operationId": "postRecord",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Item data to be added to the register",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/minted-item"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "entry_number": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                }
+            }
+        },
+        "/record/{field_value}": {
+            "get": {
+                "description": "Retrieve the most up to date infoset for the record with primary key \"field_value\"",
+                "operationId": "getRecordFieldValue",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "field_value",
+                        "description": "The primary key of the record to retrieve",
+                        "required": true,
+                        "type": "string",
+                        "format": ""
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/infoset"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/record/{field_value}/entries": {
+            "get": {
+                "description": "Retrieve all entries with primary key \"field_value\"",
+                "operationId": "getRecordFieldValueEntries",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "field_value",
+                        "description": "The record's primary key",
+                        "required": true,
+                        "type": "string",
+                        "format": ""
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/entry"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/records": {
+            "get": {
+                "description": "Get all records in the register",
+                "operationId": "getRecords",
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/records"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create multiple new records",
+                "operationId": "postRecords",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "Item data to be added to the register",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/minted-item"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "entry_number": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request"
+                    }
+                }
+            }
+        },
+        "/records/{field_name}/{field_value}": {
+            "get": {
+                "description": "Get all records with the specified value in the specified field",
+                "operationId": "getRecordsNameValue",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "field_name",
+                        "description": "The name of the field to match against",
+                        "required": true,
+                        "type": "string",
+                        "format": ""
+                    },
+                    {
+                        "in": "path",
+                        "name": "field_value",
+                        "description": "The value of the field to query on",
+                        "required": true,
+                        "type": "string",
+                        "format": ""
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/records"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                }
+            }
+        },
+        "/register": {
+            "get": {
+                "description": "Get information about the register",
+                "operationId": "getRegister",
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/register-infoset"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/proof/register/{proof_identifier}": {
+            "get": {
+                "description": "Get the integrity proof for the whole register",
+                "operationId": "getRegisterProof",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "proof_identifier",
+                        "description": "Which proof algorithm to use (merkle:sha-256)",
+                        "required": true,
+                        "type": "string",
+                        "format": "proof"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/register-proof"
+                        }
+                    }
+                }
+            }
+        },
+        "/proof/entry/{entry_number}/{total_entries}/{proof_identifier}": {
+            "get": {
+                "description": "Get the integrity proof for the specified entry",
+                "operationId": "getEntryProof",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "entry_number",
+                        "description": "Which entry to get the proof for",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "path",
+                        "name": "total_entries",
+                        "description": "Number of entries in the register",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "path",
+                        "name": "proof_identifier",
+                        "description": "merkle:sha-256",
+                        "required": true,
+                        "type": "string",
+                        "format": "proof"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entry-proof"
+                        }
+                    }
+                }
+            }
+        },
+        "/proof/consistency/{total_entries_1}/{total_entries_2}/{proof_identifier}": {
+            "get": {
+                "description": "Get the consistency proof for the specified sub-trees",
+                "operationId": "getConsistencyProof",
+                "produces": [
+                    "application/json"
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "total_entries_1",
+                        "description": "The size of the smaller subtree",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "path",
+                        "name": "total_entries_2",
+                        "description": "The size of the larger subtree",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "path",
+                        "name": "proof_identifier",
+                        "description": "merkle:sha-256",
+                        "required": true,
+                        "type": "string",
+                        "format": "proof"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/consistency-proof"
+                        }
+                    }
+                }
+            }
+        },
+        "/proofs": {
+            "get": {
+                "description": "Get the list of available proofing mechanisms",
+                "operationId": "getProofs",
+                "produces": [
+                    "application/json"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "item": {
+            "description": "The item's schema is defined by the validation API.",
+            "type": "object"
+        },
+        "entry": {
+            "type": "object",
+            "properties": {
+                "entry_number": {
+                    "type": "integer"
+                },
+                "entry_timestamp": {
+                    "type": "string"
+                },
+                "item_hash": {
+                    "type": "string"
+                },
+                "key": {
+                    "description": "Primary identifier for the register",
+                    "type": "string"
+                },
+                "item_signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "minted-item": {
+            "type": "object",
+            "properties": {
+                "item": {
+                    "type": "object",
+                    "description": "The schema of the item property is undefined for the register API, but is validated by validation-api, if specified."
+                },
+                "item-hash": {
+                    "type": "string"
+                },
+                "item-signature": {
+                    "type": "string"
+                }
+            }
+        },
+        "infoset": {
+            "type": "object",
+            "properties": {
+                "entry_number": {
+                    "type": "integer"
+                },
+                "entry_timestamp": {
+                    "type": "string"
+                },
+                "item_hash": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "item": {
+                    "type": "object",
+                    "description": "The schema of the item is variable and enforced by Validation API"
+                }
+            }
+        },
+        "records": {
+            "type": "object",
+            "description": "Note: contains object for each infoset in the register.",
+            "properties": {
+                "<primary_key>": {
+                    "$ref": "#/definitions/infoset"
+                },
+                "<primary_key_2>": {
+                    "$ref": "#/definitions/infoset"
+                }
+            }
+        },
+        "register-infoset": {
+            "type": "object",
+            "description": "Register metadata",
+            "properties": {
+                "last-updated": {
+                    "type": "string",
+                    "format": "datetime",
+                    "description": "The date/time of the last update to the register"
+                },
+                "total-entries": {
+                    "type": "integer",
+                    "description": "The number of entries in the register"
+                },
+                "total-records": {
+                    "type": "integer",
+                    "description": "The number of records in the register"
+                },
+                "total-items": {
+                    "type": "integer",
+                    "description": "The number of items in the register"
+                },
+                "register-record": {
+                    "$ref": "#/definitions/register-record"
+                }
+            }
+
+        },
+        "register-record": {
+            "type": "object",
+            "description": "Static register metadata",
+            "properties": {
+                "start-date": {},
+                "end-date": {},
+                "phase": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "item-hash": {
+                    "type": "string"
+                },
+                "entry-timestamp": {
+                    "type": "string"
+                },
+                "registry": {
+                    "type": "string"
+                },
+                "register": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "register-proof": {
+            "type": "object",
+            "properties": {
+                "tree-head-signature": {
+                    "type": "string",
+                    "description": "(Pending)"
+                },
+                "proof-identifier": {
+                    "type": "string"
+                },
+                "root-hash": {
+                    "type": "string",
+                    "description": "Root hash of the Merkle tree"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "format": "datetime",
+                    "description": "When the MTH was calculated"
+                },
+                "tree-size": {
+                    "type": "integer",
+                    "description": "Number of leafs in the Merkle Tree"
+                }
+            }
+        },
+        "entry-proof": {
+            "type": "object",
+            "properties": {
+                "proof-identifier": {
+                    "type": "string",
+                    "description": "merkle:sha-256"
+                },
+                "entry-number": {
+                    "type": "string",
+                    "description": "The entry the audit proof is for"
+                },
+                "merkle-audit-path": {
+                    "type": "array",
+                    "description": "The audit path for the requested entry",
+                    "items": {
+                        "type": "string",
+                        "format": "sha-256"
+                    }
+                }
+            }
+        },
+        "consistency-proof": {
+            "type": "object",
+            "properties": {
+                "proof-identifier": {
+                    "type": "string"
+                },
+                "merkle-consistency-nodes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "The proof of consistency between the trees"
+                }
+            }
+        }
+    }
+}
